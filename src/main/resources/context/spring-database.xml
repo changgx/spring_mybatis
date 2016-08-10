@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+		http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd"
+       default-lazy-init="true">
+
+
+       <description>数据源配置</description>
+
+       <!-- 数据源配置 -->
+       <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+              <!-- 数据源驱动类可不写，Druid默认会自动根据URL识别DriverClass -->
+              <property name="driverClassName" value="${jdbc.driver}" />
+
+              <!-- 基本属性 url、user、password -->
+              <property name="url" value="${jdbc.url}" />
+              <property name="username" value="${jdbc.username}" />
+              <property name="password" value="${jdbc.password}" />
+
+              <!-- 配置初始化大小、最小、最大 -->
+              <property name="initialSize" value="${druid.initialSize}" />
+              <property name="minIdle" value="${druid.minIdle}" />
+              <property name="maxActive" value="${druid.maxActive}" />
+
+              <!-- 配置获取连接等待超时的时间 -->
+              <property name="maxWait" value="${druid.maxWait}" />
+
+              <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+              <property name="timeBetweenEvictionRunsMillis" value="${druid.timeBetweenEvictionRunsMillis}" />
+
+              <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+              <property name="minEvictableIdleTimeMillis" value="${druid.minEvictableIdleTimeMillis}" />
+
+              <property name="validationQuery" value="${druid.validationQuery}" />
+              <property name="testWhileIdle" value="${druid.testWhileIdle}" />
+              <property name="testOnBorrow" value="${druid.testOnBorrow}" />
+              <property name="testOnReturn" value="${druid.testOnReturn}" />
+
+
+              <!-- 配置监控统计拦截的filters -->
+              <property name="filters" value="${druid.filters}" />
+       </bean>
+
+
+       <!-- MyBatis begin -->
+       <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+              <property name="dataSource" ref="dataSource"/>
+              <!-- 取对应包中不包括包名的简单类名作为包括包名的别名,多个package之间可以用逗号或者分号等来进行分隔-->
+              <property name="typeAliasesPackage" value="com.changgx.bean"/>
+              <!--<property name="typeAliasesSuperType" value="org.kunteng.yunac.common.persistence.BaseEntity"/>-->
+              <!--指定MyBatis的xml映射器文件的位置-->
+              <property name="mapperLocations" value="classpath:/mappings/**/*.xml"/>
+              <!-- 指定Mybatis的xml配置文件的位置，用于修改Myabtis的基础属性-->
+              <!--<property name="configLocation" value="classpath:/context/mybatis-config.xml"></property>-->
+       </bean>
+
+       <!-- 扫描basePackage下所有以@MyBatisDao注解的接口 -->
+       <bean id="mapperScannerConfigurer" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+              <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+              <property name="basePackage" value="com.changgx"/>
+              <property name="annotationClass" value="com.changgx.annotation.MyBatisDao"/>
+       </bean>
+
+
+       <!-- 1. 配置事务管理器 -->
+       <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+              <property name="dataSource" ref="dataSource"></property>
+       </bean>
+
+       <!-- 2. 配置事务属性 -->
+       <tx:advice id="txAdvice" transaction-manager="transactionManager">
+              <tx:attributes>
+                     <!-- 根据方法名指定事务的属性 -->
+                     <tx:method name="buy*"  propagation="REQUIRED"/>
+                     <!--<tx:method name="get*" read-only="true"/>-->
+                     <!--<tx:method name="find*" read-only="true"/>-->
+                     <!--<tx:method name="*"/>-->
+              </tx:attributes>
+       </tx:advice>
+
+       <!-- 3. 配置事务切入点, 以及把事务切入点和事务属性关联起来 -->
+       <aop:config>
+              <aop:pointcut expression="execution(* com.changgx.service.*.*(..))"
+                            id="txPointCut"/>
+              <aop:advisor advice-ref="txAdvice" pointcut-ref="txPointCut"/>
+       </aop:config>
+
+</beans>
